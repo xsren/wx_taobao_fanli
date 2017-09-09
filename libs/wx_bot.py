@@ -16,6 +16,7 @@ import threading
 import traceback
 
 import itchat
+import requests
 from itchat.content import *
 
 from alimama import Alimama
@@ -28,13 +29,33 @@ al.login()
 def check_if_is_tb_link(msg):
     if re.search(ur'【.*】', msg.text) and (u'打开👉手机淘宝👈' in msg.text or u'打开👉天猫APP👈' in msg.text):
         try:
+            print msg.text
             q = re.search(ur'【.*】', msg.text).group().replace(u'【', '').replace(u'】', '')
             if u'打开👉天猫APP👈' in msg.text:
-                print msg.text
-                url = re.search(ur'http://.* \)', msg.text).group().replace(u' )', '')
+                try:
+                    url = re.search(ur'http://.* \)', msg.text).group().replace(u' )', '')
+                except:
+                    url = None
+
             else:
-                url = re.search(ur'http://.* ，', msg.text).group().replace(u' ，', '')
+                try:
+                    url = re.search(ur'http://.* ，', msg.text).group().replace(u' ，', '')
+                except:
+                    url = None
+            # 20170909新版淘宝分享中没有链接， 感谢网友jindx0713（https://github.com/jindx0713）提供代码和思路，现在使用第三方网站 http://www.taokouling.com 根据淘口令获取url
+            if url is None:
+                taokoulingurl = 'http://www.taokouling.com/index.php?m=api&a=taokoulingjm'
+                taokouling = re.search(r'￥.*?￥', msg.text.encode('utf8')).group()
+                parms = {'username': 'wx_tb_fanli', 'password': 'wx_tb_fanli', 'text': taokouling}
+                res = requests.post(taokoulingurl, data=parms)
+                # print res.text
+                url = res.json()['url'].replace('https://', 'http://')
+                print "tkl url: {}".format(url)
+
+            # get real url
             real_url = al.get_real_url(url)
+            print "real_url: {}".format(real_url)
+
             # get detail
             res = al.get_detail(real_url)
             auctionid = res['auctionId']

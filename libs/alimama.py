@@ -31,15 +31,15 @@ class Alimama:
         self.myip = "127.0.0.1"
 
     def get_url(self, url, headers):
-        print 'begin to crawl url: %s' % url
+        # print 'begin to crawl url: %s' % url
         res = self.se.get(url, headers=headers)
-        print 'finish to crawl url: %s, status:%s' % (url, res.status_code)
+        # print 'finish to crawl url: %s, status:%s' % (url, res.status_code)
         return res
 
     def post_url(self, url, headers, data):
-        print 'begin to crawl url: %s' % url
+        # print 'begin to crawl url: %s' % url
         res = self.se.post(url, headers=headers, data=data)
-        print 'finish to crawl url: %s, status:%s' % (url, res.status_code)
+        # print 'finish to crawl url: %s, status:%s' % (url, res.status_code)
         return res
 
     def load_cookies(self):
@@ -328,9 +328,10 @@ class Alimama:
                 'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
             }
             res = self.get_url(url, headers)
-            print res.url
-            r_url = re.search(r"var url = '.*';", res.text).group().replace("var url = '", "").replace("';", "")
-
+            try:
+                r_url = re.search(r"var url = '.*';", res.text).group().replace("var url = '", "").replace("';", "")
+            except:
+                r_url = res.url
             if 's.click.taobao.com' in r_url:
                 r_url = self.handle_click_type_url(r_url)
             else:
@@ -352,6 +353,7 @@ class Alimama:
             return r_url
         except Exception, e:
             print str(e)
+            return url
 
     def handle_click_type_url(self, url):
         # step 1
