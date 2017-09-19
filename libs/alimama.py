@@ -17,6 +17,7 @@ import time
 import traceback
 import urllib
 from io import BytesIO
+from threading import Thread
 
 import requests
 from PIL import Image
@@ -29,6 +30,36 @@ class Alimama:
         self.se = requests.session()
         self.load_cookies()
         self.myip = "127.0.0.1"
+        self.start_keep_cookie_thread()
+
+    # 启动一个线程，定时访问淘宝联盟主页，防止cookie失效
+    def start_keep_cookie_thread(self):
+        t = Thread(target=self.visit_main_url, args=())
+        t.start()
+
+    def visit_main_url(self):
+        url = "https://pub.alimama.com/"
+        headers = {
+            'method': 'GET',
+            'authority': 'pub.alimama.com',
+            'scheme': 'https',
+            'path': '/common/getUnionPubContextInfo.json',
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'X-Requested-With': 'XMLHttpRequest',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+            'Referer': 'http://pub.alimama.com/',
+            'Accept-Encoding': 'gzip, deflate, sdch',
+            'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
+        }
+        while True:
+            time.sleep(60)
+            try:
+                print "visit_main_url......"
+                self.get_url(url, headers)
+            except Exception, e:
+                print str(e)
+                trace = traceback.format_exc()
+                print trace
 
     def get_url(self, url, headers):
         # print 'begin to crawl url: %s' % url
@@ -180,14 +211,13 @@ class Alimama:
             clr = self.check_login()
             self.myip = clr['data']['ip']
             if 'mmNick' in clr['data']:
-                print "don't need login"
+                print u"淘宝已经登录 不需要再次登录"
                 return 'login success'
             else:
                 dlr = self.do_login()
                 if dlr is None:
                     return 'login failed'
                 else:
-
                     return 'login success'
         except Exception, e:
             print str(e)
@@ -264,7 +294,7 @@ class Alimama:
         }
         res = self.get_url(url, headers)
         print res.text
-        rj = json.loads(res.text)
+        rj = res.json()
         gcid = rj['data']['otherList'][0]['gcid']
         siteid = rj['data']['otherList'][0]['siteid']
         adzoneid = rj['data']['otherAdzones'][0]['sub'][0]['id']
