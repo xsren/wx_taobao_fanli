@@ -187,6 +187,7 @@ class Alimama:
                 if dlr is None:
                     return 'login failed'
                 else:
+
                     return 'login success'
         except Exception, e:
             print str(e)
@@ -318,6 +319,7 @@ class Alimama:
         return rj['data']
 
     def get_real_url(self, url):
+        # return "https://detail.tmall.com/item.htm?id=548726815314"
         try:
             headers = {
                 'Host': url.split('http://')[-1].split('/')[0],
@@ -328,9 +330,15 @@ class Alimama:
                 'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
             }
             res = self.get_url(url, headers)
-            try:
-                r_url = re.search(r"var url = '.*';", res.text).group().replace("var url = '", "").replace("';", "")
-            except:
+            if re.search(r'itemId\":\d+', res.text):
+                item_id = re.search(r'itemId\":\d+', res.text).group().replace('itemId":', '').replace('https://',
+                                                                                                       'http://')
+                r_url = "https://detail.tmall.com/item.htm?id=%s" % item_id
+            elif re.search(r"var url = '.*';", res.text):
+                r_url = re.search(r"var url = '.*';", res.text).group().replace("var url = '", "").replace("';",
+                                                                                                           "").replace(
+                    'https://', 'http://')
+            else:
                 r_url = res.url
             if 's.click.taobao.com' in r_url:
                 r_url = self.handle_click_type_url(r_url)
@@ -338,7 +346,7 @@ class Alimama:
                 while ('detail.tmall.com' not in r_url) and ('item.taobao.com' not in r_url) and (
                             'detail.m.tmall.com' not in r_url):
                     headers1 = {
-                        'Host': r_url.split('https://')[-1].split('/')[0],
+                        'Host': r_url.split('http://')[-1].split('/')[0],
                         'Upgrade-Insecure-Requests': '1',
                         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
