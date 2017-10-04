@@ -12,6 +12,7 @@
 """
 import json
 import os.path
+import platform
 import re
 import time
 import traceback
@@ -19,6 +20,8 @@ import urllib
 from io import BytesIO
 from threading import Thread
 
+import pyqrcode
+import qrtools
 import requests
 from PIL import Image
 
@@ -35,6 +38,7 @@ class Alimama:
     # 启动一个线程，定时访问淘宝联盟主页，防止cookie失效
     def start_keep_cookie_thread(self):
         t = Thread(target=self.visit_main_url, args=())
+        t.setDaemon(True)
         t.start()
 
     def visit_main_url(self):
@@ -52,10 +56,16 @@ class Alimama:
             'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
         }
         while True:
-            time.sleep(60)
+            time.sleep(60 * 5)
             try:
                 print "visit_main_url......"
+                print time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 self.get_url(url, headers)
+                print self.check_login()
+                real_url = "https://detail.tmall.com/item.htm?id=42485910384"
+                res = self.get_detail(real_url)
+                auctionid = res['auctionId']
+                print self.get_tk_link(auctionid)
             except Exception, e:
                 print str(e)
                 trace = traceback.format_exc()
@@ -148,6 +158,7 @@ class Alimama:
         print 'begin to show qr image'
         url = 'https://qrlogin.taobao.com/qrcodelogin/generateQRCode4Login.do?from=alimama&_ksTS=%s_30&callback=jsonp31' % int(
             time.time() * 1000)
+
         # get qr image
         headers = {
             'method': 'GET',
@@ -165,6 +176,7 @@ class Alimama:
         rj = json.loads(res.text.replace('(function(){jsonp31(', '').replace(');})();', ''))
         lg_token = rj['lgToken']
         url = 'https:%s' % rj['url']
+        print u"请使用支付宝客户端扫码"
 
         headers = {
             'method': 'GET',
@@ -179,8 +191,22 @@ class Alimama:
         }
         res = self.get_url(url, headers=headers)
         qrimg = BytesIO(res.content)
-        img = Image.open(qrimg)
-        img.show()
+
+        sysstr = platform.system()
+        if (sysstr == "Windows"):
+            # windows下可能无法打印请用下列代码
+            img = Image.open(qrimg)
+            img.show()
+        elif (sysstr == "Linux") or (sysstr == "Darwin"):
+            # 使用qrtool读取url
+            qr = qrtools.QR()
+            qr.decode(qrimg)
+            qr_url =  qr.data
+            # 使用pyqrcode在终端打印，只在linux下可以用
+            pyqrcode_url = pyqrcode.create(qr_url)
+            print pyqrcode_url.terminal()
+
+
         print 'finish to show qr image, please scan'
         return lg_token
 
@@ -253,7 +279,7 @@ class Alimama:
             }
             res = self.get_url(url, headers)
             # print res.text
-            rj = json.loads(res.text)
+            rj = res.json()
             if len(rj['data']['pageList']) > 0:
                 return rj['data']['pageList'][0]
             else:
