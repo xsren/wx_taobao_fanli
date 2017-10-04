@@ -176,7 +176,6 @@ class Alimama:
         rj = json.loads(res.text.replace('(function(){jsonp31(', '').replace(');})();', ''))
         lg_token = rj['lgToken']
         url = 'https:%s' % rj['url']
-        print u"请使用支付宝客户端扫码"
 
         headers = {
             'method': 'GET',
@@ -206,8 +205,7 @@ class Alimama:
             pyqrcode_url = pyqrcode.create(qr_url)
             print pyqrcode_url.terminal()
 
-
-        print 'finish to show qr image, please scan'
+            print u"请使用支付宝客户端扫码"
         return lg_token
 
     # do login
