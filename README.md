@@ -21,7 +21,15 @@ itchat
 ```
 
 #### 使用
-命令行运行
+#####docker运行
+项目根目录下执行
+```
+# 编译镜像
+docker build -t xsren/wx_tb_fanli .
+# 运行容器
+docker run -ti --rm -e LANG=C.UTF-8 xsren/wx_tb_fanli
+```
+#####命令行运行
 ```
 python main.py
 ```
