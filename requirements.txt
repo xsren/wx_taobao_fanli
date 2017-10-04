@@ -1,0 +1,4 @@
+itchat
+qrtools
+zbar
+pillow
