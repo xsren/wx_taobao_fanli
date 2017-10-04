@@ -63,7 +63,7 @@ def check_if_is_tb_link(msg):
             tk_rate = res['tkRate']
             price = res['zkPrice']
             # print 'fx rate:%s' % tk_rate
-            fx = price * tk_rate
+            fx = price * tk_rate/100
 
             # get tk link
             res1 = al.get_tk_link(auctionid)
@@ -75,7 +75,7 @@ def check_if_is_tb_link(msg):
                 coupon_token = res1['couponLinkTaoToken']
                 res_text = u'''
                 %s
-                【返现】%s元
+                【返现】%.2f
                 【优惠券】%s元
                 请复制%s淘口令、打开淘宝APP下单
                 -----------------
@@ -96,7 +96,7 @@ def check_if_is_tb_link(msg):
 #                                 ''' % (q, coupon_amount, tao_token, short_link)
                 res_text = u'''
                 %s
-                【返现】%s元
+                【返现】%.2f元
                 【优惠券】%s元
                 请复制%s淘口令、打开淘宝APP下单
                 -----------------
