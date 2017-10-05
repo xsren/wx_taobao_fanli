@@ -127,7 +127,7 @@ class WxBot(object):
         #         msg.actualNickName, msg.text))
 
     def run(self):
-        itchat.auto_login(enableCmdQR=True, hotReload=True)
+        itchat.auto_login(enableCmdQR=2, hotReload=True)
         itchat.run(True)
 
 

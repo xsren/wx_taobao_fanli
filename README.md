@@ -27,7 +27,7 @@ itchat
 # 编译镜像
 docker build -t xsren/wx_tb_fanli .
 # 运行容器
-docker run -ti --rm -e LANG=C.UTF-8 xsren/wx_tb_fanli
+docker run -ti xsren/wx_tb_fanli
 ```
 也可以直接拉取我的镜像
 ```
