@@ -205,7 +205,7 @@ class Alimama:
             pyqrcode_url = pyqrcode.create(qr_url)
             print pyqrcode_url.terminal()
 
-        print u"请使用支付宝客户端扫码"
+        print u"请使用淘宝客户端扫码"
         return lg_token
 
     # do login
