@@ -21,10 +21,12 @@ from io import BytesIO
 from threading import Thread
 
 import pyqrcode
-import qrtools
 import requests
 from PIL import Image
 
+sysstr = platform.system()
+if (sysstr == "Linux") or (sysstr == "Darwin"):
+    import qrtools
 cookie_fname = 'cookies.txt'
 
 
@@ -200,7 +202,7 @@ class Alimama:
             # 使用qrtool读取url
             qr = qrtools.QR()
             qr.decode(qrimg)
-            qr_url =  qr.data
+            qr_url = qr.data
             # 使用pyqrcode在终端打印，只在linux下可以用
             pyqrcode_url = pyqrcode.create(qr_url)
             print pyqrcode_url.terminal()

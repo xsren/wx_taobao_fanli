@@ -10,7 +10,7 @@
 @time: 2017/5/28 上午10:40
 
 """
-
+import platform
 import re
 import threading
 import traceback
@@ -127,7 +127,11 @@ class WxBot(object):
         #         msg.actualNickName, msg.text))
 
     def run(self):
-        itchat.auto_login(enableCmdQR=2, hotReload=True)
+        sysstr = platform.system()
+        if (sysstr == "Linux") or (sysstr == "Darwin"):
+            itchat.auto_login(enableCmdQR=2, hotReload=True)
+        else:
+            itchat.auto_login(hotReload=True)
         itchat.run(True)
 
 
