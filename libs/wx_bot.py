@@ -19,9 +19,12 @@ import itchat
 import requests
 from itchat.content import *
 
+import utils
 from alimama import Alimama
 
-al = Alimama()
+logger = utils.init_logger()
+
+al = Alimama(logger)
 al.login()
 
 
@@ -29,7 +32,7 @@ al.login()
 def check_if_is_tb_link(msg):
     if re.search(ur'【.*】', msg.text) and (u'打开👉手机淘宝👈' in msg.text or u'打开👉天猫APP👈' in msg.text):
         try:
-            print msg.text
+            logger.debug(msg.text)
             q = re.search(ur'【.*】', msg.text).group().replace(u'【', '').replace(u'】', '')
             if u'打开👉天猫APP👈' in msg.text:
                 try:
@@ -48,13 +51,14 @@ def check_if_is_tb_link(msg):
                 taokouling = re.search(r'￥.*?￥', msg.text.encode('utf8')).group()
                 parms = {'username': 'wx_tb_fanli', 'password': 'wx_tb_fanli', 'text': taokouling}
                 res = requests.post(taokoulingurl, data=parms)
-                # print res.text
                 url = res.json()['url'].replace('https://', 'http://')
-                print "tkl url: {}".format(url)
+                info = "tkl url: {}".format(url)
+                logger.debug(info)
 
             # get real url
             real_url = al.get_real_url(url)
-            print "real_url: {}".format(real_url)
+            info = "real_url: {}".format(real_url)
+            logger.debug(info)
 
             # get detail
             res = al.get_detail(real_url)
@@ -62,8 +66,7 @@ def check_if_is_tb_link(msg):
             coupon_amount = res['couponAmount']
             tk_rate = res['tkRate']
             price = res['zkPrice']
-            # print 'fx rate:%s' % tk_rate
-            fx = (price-coupon_amount) * tk_rate/100
+            fx = (price - coupon_amount) * tk_rate / 100
 
             # get tk link
             res1 = al.get_tk_link(auctionid)
@@ -81,19 +84,19 @@ def check_if_is_tb_link(msg):
 -----------------
 【下单地址】%s
                 ''' % (q, fx, coupon_amount, coupon_token, short_link)
-#                 res_text = u'''%s
-# 【优惠券】%s元
-# 请复制%s淘口令、打开淘宝APP下单
-# -----------------
-# 【下单地址】%s
-#             ''' % (q, coupon_amount, coupon_token, short_link)
+            # res_text = u'''%s
+            # 【优惠券】%s元
+            # 请复制%s淘口令、打开淘宝APP下单
+            # -----------------
+            # 【下单地址】%s
+            #             ''' % (q, coupon_amount, coupon_token, short_link)
             else:
-#                 res_text = u'''%s
-# 【优惠券】%s元
-# 请复制%s淘口令、打开淘宝APP下单
-# -----------------
-# 【下单地址】%s
-#                                 ''' % (q, coupon_amount, tao_token, short_link)
+                #                 res_text = u'''%s
+                # 【优惠券】%s元
+                # 请复制%s淘口令、打开淘宝APP下单
+                # -----------------
+                # 【下单地址】%s
+                #                                 ''' % (q, coupon_amount, tao_token, short_link)
                 res_text = u'''
 %s
 【返现】%.2f元
@@ -104,7 +107,8 @@ def check_if_is_tb_link(msg):
                                 ''' % (q, fx, coupon_amount, tao_token, short_link)
             msg.user.send(res_text)
         except Exception, e:
-            traceback.print_exc()
+            trace = traceback.format_exc()
+            logger.warning("error:{},trace:{}".format(str(e), trace))
             info = u'''%s
 -----------------
 该宝贝暂时没有找到内部返利通道！亲您可以换个宝贝试试，也可以联系我们群内管理员帮着寻找有返现的类似商品
@@ -115,7 +119,6 @@ def check_if_is_tb_link(msg):
 class WxBot(object):
     @itchat.msg_register([TEXT])
     def text_reply(msg):
-        # print  '%s: %s' % (msg.type, msg.text)
         check_if_is_tb_link(msg)
         # msg.user.send('%s: %s' % (msg.type, msg.text))
 

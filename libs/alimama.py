@@ -31,11 +31,12 @@ cookie_fname = 'cookies.txt'
 
 
 class Alimama:
-    def __init__(self):
+    def __init__(self, logger):
         self.se = requests.session()
         self.load_cookies()
         self.myip = "127.0.0.1"
         self.start_keep_cookie_thread()
+        self.logger = logger
 
     # 启动一个线程，定时访问淘宝联盟主页，防止cookie失效
     def start_keep_cookie_thread(self):
@@ -60,29 +61,24 @@ class Alimama:
         while True:
             time.sleep(60 * 5)
             try:
-                print "visit_main_url......"
-                print time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                self.logger.debug(
+                    "visit_main_url......,time:{}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
                 self.get_url(url, headers)
-                print self.check_login()
+                self.logger.debug(self.check_login())
                 real_url = "https://detail.tmall.com/item.htm?id=42485910384"
                 res = self.get_detail(real_url)
                 auctionid = res['auctionId']
-                print self.get_tk_link(auctionid)
+                self.logger.debug(self.get_tk_link(auctionid))
             except Exception, e:
-                print str(e)
                 trace = traceback.format_exc()
-                print trace
+                self.logger.warning("error:{},trace:{}".format(str(e), trace))
 
     def get_url(self, url, headers):
-        # print 'begin to crawl url: %s' % url
         res = self.se.get(url, headers=headers)
-        # print 'finish to crawl url: %s, status:%s' % (url, res.status_code)
         return res
 
     def post_url(self, url, headers, data):
-        # print 'begin to crawl url: %s' % url
         res = self.se.post(url, headers=headers, data=data)
-        # print 'finish to crawl url: %s, status:%s' % (url, res.status_code)
         return res
 
     def load_cookies(self):
@@ -101,7 +97,7 @@ class Alimama:
 
     # check login
     def check_login(self):
-        print 'checking login status.....'
+        self.logger.debug('checking login status.....')
         url = 'https://pub.alimama.com/common/getUnionPubContextInfo.json'
         headers = {
             'method': 'GET',
@@ -134,8 +130,7 @@ class Alimama:
             'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
         }
         res = self.get_url(url, headers=headers)
-        print res.status_code
-        # print res.text
+        self.logger.debug(res.status_code)
 
     def get_scan_qr_status(self, lg_token):
         defaulturl = 'http://login.taobao.com/member/taobaoke/login.htm?is_login=1'
@@ -157,7 +152,7 @@ class Alimama:
         return rj
 
     def show_qr_image(self):
-        print 'begin to show qr image'
+        self.logger.debug('begin to show qr image')
         url = 'https://qrlogin.taobao.com/qrcodelogin/generateQRCode4Login.do?from=alimama&_ksTS=%s_30&callback=jsonp31' % int(
             time.time() * 1000)
 
@@ -207,12 +202,12 @@ class Alimama:
             pyqrcode_url = pyqrcode.create(qr_url)
             print pyqrcode_url.terminal()
 
-        print u"请使用淘宝客户端扫码"
+        self.logger.debug(u"请使用淘宝客户端扫码")
         return lg_token
 
     # do login
     def do_login(self):
-        print 'begin to login'
+        self.logger.debug('begin to login')
         # show qr image
         lg_token = self.show_qr_image()
         t0 = time.time()
@@ -221,14 +216,14 @@ class Alimama:
             # 扫码成功会有跳转
             if rj.has_key('url'):
                 self.visit_login_rediret_url(rj['url'])
-                print 'login success'
-                print self.se.cookies.items()
+                self.logger.debug('login success')
+                self.logger.debug(self.se.cookies.items())
                 with open(cookie_fname, 'w') as f:
                     f.write(json.dumps(self.se.cookies.items()))
                 return 'login success'
             # 二维码过一段时间会失效
-            if time.time() - t0 > 90:
-                print 'scan timeout'
+            if time.time() - t0 > 60 * 5:
+                self.logger.debug('scan timeout')
                 return
             time.sleep(0.5)
 
@@ -237,7 +232,7 @@ class Alimama:
             clr = self.check_login()
             self.myip = clr['data']['ip']
             if 'mmNick' in clr['data']:
-                print u"淘宝已经登录 不需要再次登录"
+                self.logger.debug(u"淘宝已经登录 不需要再次登录")
                 return 'login success'
             else:
                 dlr = self.do_login()
@@ -246,7 +241,7 @@ class Alimama:
                 else:
                     return 'login success'
         except Exception, e:
-            print str(e)
+            self.logger.warning("{}".format(str(e)))
             return 'login failed'
 
     def get_tb_token(self):
@@ -278,16 +273,14 @@ class Alimama:
                 'accept-language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
             }
             res = self.get_url(url, headers)
-            # print res.text
             rj = res.json()
             if len(rj['data']['pageList']) > 0:
                 return rj['data']['pageList'][0]
             else:
                 return 'no match item'
         except Exception, e:
-            print str(e)
-            traceback.print_exc()
-            return str(e)
+            trace = traceback.format_exc()
+            self.logger.warning("error:{},trace:{}".format(str(e), trace))
 
     # 获取淘宝客链接
     def get_tk_link(self, auctionid):
@@ -298,12 +291,10 @@ class Alimama:
             gcid, siteid, adzoneid = self.__get_tk_link_s1(auctionid, tb_token, pvid)
             self.__get_tk_link_s2(gcid, siteid, adzoneid, auctionid, tb_token, pvid)
             res = self.__get_tk_link_s3(auctionid, adzoneid, siteid, tb_token, pvid)
-            # print res
             return res
         except Exception, e:
-            print str(e)
-            traceback.print_exc()
-            return str(e)
+            trace = traceback.format_exc()
+            self.logger.warning("error:{},trace:{}".format(str(e), trace))
 
     # 第一步，获取推广位相关信息
     def __get_tk_link_s1(self, auctionid, tb_token, pvid):
@@ -319,7 +310,7 @@ class Alimama:
             'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
         }
         res = self.get_url(url, headers)
-        print res.text
+        self.logger.debug(res.text)
         rj = res.json()
         gcid = rj['data']['otherList'][0]['gcid']
         siteid = rj['data']['otherList'][0]['siteid']
@@ -353,7 +344,6 @@ class Alimama:
         }
 
         res = self.post_url(url, headers, data)
-        # print res.text
         return res
 
     # 获取口令
@@ -371,7 +361,6 @@ class Alimama:
         }
         res = self.get_url(url, headers)
         rj = json.loads(res.text)
-        # print res.text
         return rj['data']
 
     def get_real_url(self, url):
@@ -410,13 +399,13 @@ class Alimama:
                         'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
                     }
                     res2 = self.get_url(r_url, headers1)
-                    print res2.url, res2.status_code, res2.history
+                    self.logger.debug("{},{},{}".format(res2.url, res2.status_code, res2.history))
                     r_url = res2.url
 
-            print r_url
+            self.logger.debug(r_url)
             return r_url
         except Exception, e:
-            print str(e)
+            self.logger.warning(str(e))
             return url
 
     def handle_click_type_url(self, url):
@@ -433,7 +422,7 @@ class Alimama:
             'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
         }
         res = self.get_url(url, headers)
-        print res.url, res.status_code, res.history
+        self.logger.debug("{},{},{}".format(res.url, res.status_code, res.history))
         url2 = res.url
 
         # step 2
@@ -450,7 +439,7 @@ class Alimama:
             'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
         }
         res2 = self.get_url(url2, headers2)
-        print res2.url, res2.status_code, res2.history
+        self.logger.debug("{},{},{}".format(res2.url, res2.status_code, res2.history))
         url3 = urllib.unquote(res2.url.split('t_js?tu=')[-1])
 
         # step 3
@@ -467,7 +456,7 @@ class Alimama:
             'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
         }
         res3 = self.get_url(url3, headers3)
-        print res3.url, res3.status_code, res3.history
+        self.logger.debug("{},{},{}".format(res3.url, res3.status_code, res3.history))
         r_url = res3.url
 
         return r_url
@@ -481,7 +470,6 @@ if __name__ == '__main__':
     # q = u'DIY个性定制T恤 定做工作服短袖 男女夏季纯棉广告文化衫Polo印制'
     q = u'防晒衣女2017女装夏装新款印花沙滩防晒服薄中长款大码白色短外套'
     # res = al.get_detail(q)
-    # print res
     # auctionid = res['auctionId']
     # al.get_tk_link(auctionid)
     # url = 'http://c.b1wt.com/h.SQwr1X?cv=kzU8ZvbiEa8&sm=796feb'
