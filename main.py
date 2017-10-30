@@ -13,6 +13,7 @@
 
 from libs.wx_bot import WxBot
 
+
 def run():
     wb = WxBot()
     wb.run()

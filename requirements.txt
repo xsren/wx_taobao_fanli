@@ -1,4 +1,4 @@
 itchat
 qrtools
-zbar
 pillow
+zbarlight

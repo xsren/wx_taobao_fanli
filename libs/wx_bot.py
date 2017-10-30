@@ -10,6 +10,8 @@
 @time: 2017/5/28 上午10:40
 
 """
+from __future__ import unicode_literals
+
 import platform
 import re
 import threading
@@ -19,8 +21,8 @@ import itchat
 import requests
 from itchat.content import *
 
-import utils
-from alimama import Alimama
+from libs import utils
+from libs.alimama import Alimama
 
 logger = utils.init_logger()
 
@@ -30,25 +32,26 @@ al.login()
 
 # 检查是否是淘宝链接
 def check_if_is_tb_link(msg):
-    if re.search(ur'【.*】', msg.text) and (u'打开👉手机淘宝👈' in msg.text or u'打开👉天猫APP👈' in msg.text):
+    if re.search(r'【.*】', msg.text) and (
+                        u'打开👉手机淘宝👈' in msg.text or u'打开👉天猫APP👈' in msg.text or u'打开👉手淘👈' in msg.text):
         try:
             logger.debug(msg.text)
-            q = re.search(ur'【.*】', msg.text).group().replace(u'【', '').replace(u'】', '')
+            q = re.search(r'【.*】', msg.text).group().replace(u'【', '').replace(u'】', '')
             if u'打开👉天猫APP👈' in msg.text:
                 try:
-                    url = re.search(ur'http://.* \)', msg.text).group().replace(u' )', '')
+                    url = re.search(r'http://.* \)', msg.text).group().replace(u' )', '')
                 except:
                     url = None
 
             else:
                 try:
-                    url = re.search(ur'http://.* ，', msg.text).group().replace(u' ，', '')
+                    url = re.search(r'http://.* ，', msg.text).group().replace(u' ，', '')
                 except:
                     url = None
             # 20170909新版淘宝分享中没有链接， 感谢网友jindx0713（https://github.com/jindx0713）提供代码和思路，现在使用第三方网站 http://www.taokouling.com 根据淘口令获取url
             if url is None:
                 taokoulingurl = 'http://www.taokouling.com/index.php?m=api&a=taokoulingjm'
-                taokouling = re.search(r'￥.*?￥', msg.text.encode('utf8')).group()
+                taokouling = re.search(r'￥.*?￥', msg.text).group()
                 parms = {'username': 'wx_tb_fanli', 'password': 'wx_tb_fanli', 'text': taokouling}
                 res = requests.post(taokoulingurl, data=parms)
                 url = res.json()['url'].replace('https://', 'http://')
@@ -76,7 +79,7 @@ def check_if_is_tb_link(msg):
 
             if coupon_link != "":
                 coupon_token = res1['couponLinkTaoToken']
-                res_text = u'''
+                res_text = '''
 %s
 【返现】%.2f
 【优惠券】%s元
@@ -97,7 +100,7 @@ def check_if_is_tb_link(msg):
                 # -----------------
                 # 【下单地址】%s
                 #                                 ''' % (q, coupon_amount, tao_token, short_link)
-                res_text = u'''
+                res_text = '''
 %s
 【返现】%.2f元
 【优惠券】%s元
@@ -106,7 +109,7 @@ def check_if_is_tb_link(msg):
 【下单地址】%s
                                 ''' % (q, fx, coupon_amount, tao_token, short_link)
             msg.user.send(res_text)
-        except Exception, e:
+        except Exception as e:
             trace = traceback.format_exc()
             logger.warning("error:{},trace:{}".format(str(e), trace))
             info = u'''%s

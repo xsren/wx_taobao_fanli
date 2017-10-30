@@ -14,19 +14,26 @@ import json
 import os.path
 import platform
 import re
+import sys
 import time
 import traceback
-import urllib
+
+if sys.version_info[0] < 3:
+    import urllib
+else:
+    import urllib.parse as urllib
+    
 from io import BytesIO
 from threading import Thread
 
 import pyqrcode
 import requests
+
 from PIL import Image
 
 sysstr = platform.system()
 if (sysstr == "Linux") or (sysstr == "Darwin"):
-    import qrtools
+    pass
 cookie_fname = 'cookies.txt'
 
 
@@ -69,7 +76,7 @@ class Alimama:
                 res = self.get_detail(real_url)
                 auctionid = res['auctionId']
                 self.logger.debug(self.get_tk_link(auctionid))
-            except Exception, e:
+            except Exception as e:
                 trace = traceback.format_exc()
                 self.logger.warning("error:{},trace:{}".format(str(e), trace))
 
@@ -194,13 +201,14 @@ class Alimama:
             img = Image.open(qrimg)
             img.show()
         elif (sysstr == "Linux") or (sysstr == "Darwin"):
-            # 使用qrtool读取url
-            qr = qrtools.QR()
-            qr.decode(qrimg)
-            qr_url = qr.data
+            # 读取url
+            import zbarlight
+            img = Image.open(qrimg)
+            codes = zbarlight.scan_codes('qrcode', img)
+            qr_url = codes[0]
             # 使用pyqrcode在终端打印，只在linux下可以用
             pyqrcode_url = pyqrcode.create(qr_url)
-            print pyqrcode_url.terminal()
+            print (pyqrcode_url.terminal())
 
         self.logger.debug(u"请使用淘宝客户端扫码")
         return lg_token
@@ -214,7 +222,7 @@ class Alimama:
         while True:
             rj = self.get_scan_qr_status(lg_token)
             # 扫码成功会有跳转
-            if rj.has_key('url'):
+            if 'url' in rj:
                 self.visit_login_rediret_url(rj['url'])
                 self.logger.debug('login success')
                 self.logger.debug(self.se.cookies.items())
@@ -240,8 +248,9 @@ class Alimama:
                     return 'login failed'
                 else:
                     return 'login success'
-        except Exception, e:
-            self.logger.warning("{}".format(str(e)))
+        except Exception as e:
+            trace = traceback.format_exc()
+            self.logger.warning("{},{}".format(str(e), trace))
             return 'login failed'
 
     def get_tb_token(self):
@@ -278,7 +287,7 @@ class Alimama:
                 return rj['data']['pageList'][0]
             else:
                 return 'no match item'
-        except Exception, e:
+        except Exception as e:
             trace = traceback.format_exc()
             self.logger.warning("error:{},trace:{}".format(str(e), trace))
 
@@ -292,7 +301,7 @@ class Alimama:
             self.__get_tk_link_s2(gcid, siteid, adzoneid, auctionid, tb_token, pvid)
             res = self.__get_tk_link_s3(auctionid, adzoneid, siteid, tb_token, pvid)
             return res
-        except Exception, e:
+        except Exception as e:
             trace = traceback.format_exc()
             self.logger.warning("error:{},trace:{}".format(str(e), trace))
 
@@ -404,7 +413,7 @@ class Alimama:
 
             self.logger.debug(r_url)
             return r_url
-        except Exception, e:
+        except Exception as e:
             self.logger.warning(str(e))
             return url
 
