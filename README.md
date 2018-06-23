@@ -2,6 +2,14 @@
 微信 淘宝 返利
 
 ---
+20180630 更新
+
+因为淘宝改版，扫码登录这块暂时不能用了，现在的做法是在网页上登录淘宝联盟，然后把cookie放在cookies_taobao.txt文件中。淘宝联盟地址：[https://pub.alimama.com/](https://pub.alimama.com/)。cookie如下图所示：
+![](cookies.jpeg)
+
+---
+
+---
 20171030 更新
 
 兼容python3

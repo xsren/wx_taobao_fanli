@@ -22,7 +22,7 @@ if sys.version_info[0] < 3:
     import urllib
 else:
     import urllib.parse as urllib
-    
+
 from io import BytesIO
 from threading import Thread
 
@@ -35,7 +35,6 @@ sysstr = platform.system()
 if (sysstr == "Linux") or (sysstr == "Darwin"):
     pass
 cookie_fname = 'cookies.txt'
-
 
 class Alimama:
     def __init__(self, logger):
@@ -88,11 +87,17 @@ class Alimama:
         res = self.se.post(url, headers=headers, data=data)
         return res
 
+
     def load_cookies(self):
-        if os.path.isfile(cookie_fname):
-            with open(cookie_fname, 'r') as f:
-                c_str = f.read().strip()
-                self.set_cookies(c_str)
+        # 设置cookie
+        with open("cookies_taobao.txt", 'r') as fh:
+            con = fh.read()
+            for c in con.split(";"):
+                self.se.cookies.set(c.split('=')[0], c.split('=')[1])
+        # if os.path.isfile(cookie_fname):
+        #     with open(cookie_fname, 'r') as f:
+        #         c_str = f.read().strip()
+        #         self.set_cookies(c_str)
 
     def set_cookies(self, c_str):
         try:
@@ -124,6 +129,7 @@ class Alimama:
         return rj
 
     def visit_login_rediret_url(self, url):
+        print(url)
         headers = {
             'method': 'GET',
             'authority': 'login.taobao.com',
@@ -160,7 +166,7 @@ class Alimama:
 
     def show_qr_image(self):
         self.logger.debug('begin to show qr image')
-        url = 'https://qrlogin.taobao.com/qrcodelogin/generateQRCode4Login.do?from=alimama&_ksTS=%s_30&callback=jsonp31' % int(
+        url = 'https://qrlogin.taobao.com/qrcodelogin/generateQRCode4Login.do?from=alimama&_ksTS=%s_30&callback=jsonp31&appkey=00000000&umid_token=HV01PAAZ0b8bdf067b74bc7c5b2d1e520025b915' % int(
             time.time() * 1000)
 
         # get qr image
@@ -243,14 +249,17 @@ class Alimama:
                 self.logger.debug(u"淘宝已经登录 不需要再次登录")
                 return 'login success'
             else:
+                print(u"请更新最新的cookie到cookies_taobao.txt文件中！！！")
+                raise Exception("need to refresh taobao cookie")
                 dlr = self.do_login()
                 if dlr is None:
                     return 'login failed'
                 else:
                     return 'login success'
         except Exception as e:
-            trace = traceback.format_exc()
-            self.logger.warning("{},{}".format(str(e), trace))
+            # trace = traceback.format_exc()
+            # self.logger.warning(u"{},{}".format(str(e), trace))
+            print(u"淘宝登录失败")
             return 'login failed'
 
     def get_tb_token(self):
