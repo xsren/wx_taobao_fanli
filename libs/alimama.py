@@ -17,6 +17,9 @@ import re
 import sys
 import time
 import traceback
+from selenium import webdriver  
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.common.action_chains import ActionChains
 
 if sys.version_info[0] < 3:
     import urllib
@@ -41,7 +44,7 @@ class Alimama:
         self.se = requests.session()
         self.load_cookies()
         self.myip = "127.0.0.1"
-        self.start_keep_cookie_thread()
+        #self.start_keep_cookie_thread()
         self.logger = logger
 
     # 启动一个线程，定时访问淘宝联盟主页，防止cookie失效
@@ -90,22 +93,18 @@ class Alimama:
 
     def load_cookies(self):
         # 设置cookie
-        with open("cookies_taobao.txt", 'r') as fh:
-            con = fh.read()
-            for c in con.split(";"):
-                self.se.cookies.set(c.split('=')[0], c.split('=')[1])
-        # if os.path.isfile(cookie_fname):
-        #     with open(cookie_fname, 'r') as f:
-        #         c_str = f.read().strip()
-        #         self.set_cookies(c_str)
+        if os.path.isfile(cookie_fname):
+            with open(cookie_fname, 'r') as f:
+                c_str = f.read().strip()
+                self.set_cookies(c_str)
 
     def set_cookies(self, c_str):
         try:
             cookies = json.loads(c_str)
         except:
-            return
-        for c in cookies:
-            self.se.cookies.set(c[0], c[1])
+            print('error cookie')
+        for k,v in cookies.items():
+            self.se.cookies.set(k, v)
 
     # check login
     def check_login(self):
@@ -128,119 +127,6 @@ class Alimama:
         rj = json.loads(res.text)
         return rj
 
-    def visit_login_rediret_url(self, url):
-        print(url)
-        headers = {
-            'method': 'GET',
-            'authority': 'login.taobao.com',
-            'scheme': 'https',
-            'path': '/member/loginByIm.do?%s' % url.split('loginByIm.do?')[-1],
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'X-Requested-With': 'XMLHttpRequest',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-            'Referer': 'http://pub.alimama.com/',
-            'Accept-Encoding': 'gzip, deflate, sdch',
-            'Accept-Language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
-        }
-        res = self.get_url(url, headers=headers)
-        self.logger.debug(res.status_code)
-
-    def get_scan_qr_status(self, lg_token):
-        defaulturl = 'http://login.taobao.com/member/taobaoke/login.htm?is_login=1'
-        url = 'https://qrlogin.taobao.com/qrcodelogin/qrcodeLoginCheck.do?lgToken=%s&defaulturl=%s&_ksTS=%s_30&callback=jsonp31' % (
-            lg_token, defaulturl, int(time.time() * 1000))
-        headers = {
-            'method': 'GET',
-            'authority': 'qrlogin.taobao.com',
-            'scheme': 'https',
-            'path': '/qrcodelogin/qrcodeLoginCheck.do?%s' % url.split('qrcodeLoginCheck.do?')[-1],
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-            'accept': '*/*',
-            'referer': 'https://login.taobao.com/member/login.jhtml?style=mini&newMini2=true&from=alimama&redirectURL=http%3A%2F%2Flogin.taobao.com%2Fmember%2Ftaobaoke%2Flogin.htm%3Fis_login%3d1&full_redirect=true&disableQuickLogin=true',
-            'accept-encoding': 'gzip, deflate, sdch, br',
-            'accept-language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
-        }
-        res = self.get_url(url, headers=headers)
-        rj = json.loads(res.text.replace('(function(){jsonp31(', '').replace(');})();', ''))
-        return rj
-
-    def show_qr_image(self):
-        self.logger.debug('begin to show qr image')
-        url = 'https://qrlogin.taobao.com/qrcodelogin/generateQRCode4Login.do?from=alimama&_ksTS=%s_30&callback=jsonp31&appkey=00000000&umid_token=HV01PAAZ0b8bdf067b74bc7c5b2d1e520025b915' % int(
-            time.time() * 1000)
-
-        # get qr image
-        headers = {
-            'method': 'GET',
-            'authority': 'qrlogin.taobao.com',
-            'scheme': 'https',
-            'path': '/qrcodelogin/generateQRCode4Login.do?%s' % url.split('generateQRCode4Login.do?')[-1],
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-            'accept': '*/*',
-            'referer': 'https://login.taobao.com/member/login.jhtml?style=mini&newMini2=true&from=alimama&redirectURL=http%3A%2F%2Flogin.taobao.com%2Fmember%2Ftaobaoke%2Flogin.htm%3Fis_login%3d1&full_redirect=true&disableQuickLogin=true',
-            'accept-encoding': 'gzip, deflate, sdch, br',
-            'accept-language': 'zh-CN,zh;q=0.8',
-        }
-
-        res = self.get_url(url, headers=headers)
-        rj = json.loads(res.text.replace('(function(){jsonp31(', '').replace(');})();', ''))
-        lg_token = rj['lgToken']
-        url = 'https:%s' % rj['url']
-
-        headers = {
-            'method': 'GET',
-            'authority': 'img.alicdn.com',
-            'scheme': 'https',
-            'path': '/tfscom/%s' % url.split('tfscom/')[-1],
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-            'accept': 'image/webp,image/*,*/*;q=0.8',
-            'referer': 'https://login.taobao.com/member/login.jhtml?style=mini&newMini2=true&from=alimama&redirectURL=http%3A%2F%2Flogin.taobao.com%2Fmember%2Ftaobaoke%2Flogin.htm%3Fis_login%3d1&full_redirect=true&disableQuickLogin=true',
-            'accept-encoding': 'gzip, deflate, sdch, br',
-            'accept-language': 'zh,en-US;q=0.8,en;q=0.6,zh-CN;q=0.4,zh-TW;q=0.2',
-        }
-        res = self.get_url(url, headers=headers)
-        qrimg = BytesIO(res.content)
-
-        sysstr = platform.system()
-        if (sysstr == "Windows"):
-            # windows下可能无法打印请用下列代码
-            img = Image.open(qrimg)
-            img.show()
-        elif (sysstr == "Linux") or (sysstr == "Darwin"):
-            # 读取url
-            import zbarlight
-            img = Image.open(qrimg)
-            codes = zbarlight.scan_codes('qrcode', img)
-            qr_url = codes[0]
-            # 使用pyqrcode在终端打印，只在linux下可以用
-            pyqrcode_url = pyqrcode.create(qr_url)
-            print (pyqrcode_url.terminal())
-
-        self.logger.debug(u"请使用淘宝客户端扫码")
-        return lg_token
-
-    # do login
-    def do_login(self):
-        self.logger.debug('begin to login')
-        # show qr image
-        lg_token = self.show_qr_image()
-        t0 = time.time()
-        while True:
-            rj = self.get_scan_qr_status(lg_token)
-            # 扫码成功会有跳转
-            if 'url' in rj:
-                self.visit_login_rediret_url(rj['url'])
-                self.logger.debug('login success')
-                self.logger.debug(self.se.cookies.items())
-                with open(cookie_fname, 'w') as f:
-                    f.write(json.dumps(self.se.cookies.items()))
-                return 'login success'
-            # 二维码过一段时间会失效
-            if time.time() - t0 > 60 * 5:
-                self.logger.debug('scan timeout')
-                return
-            time.sleep(0.5)
-
     def login(self):
         try:
             clr = self.check_login()
@@ -262,6 +148,19 @@ class Alimama:
             print(u"淘宝登录失败")
             return 'login failed'
 
+    def new_login(self):
+        self.driver = webdriver.Ie()
+        self.driver.get("https://login.taobao.com/member/login.jhtml?style=mini&newMini2=true&from=alimama&redirectURL=http%3A%2F%2Flogin.taobao.com%2Fmember%2Ftaobaoke%2Flogin.htm%3Fis_login%3d1&full_redirect=true")
+        login_button = self.driver.find_element_by_id('J_SubmitQuick')
+        login_button.click()
+        time.sleep(1)
+        # self.driver.save_screenshot('login-screeshot-1.png')
+        cookies = {item["name"]: item["value"] for item in self.driver.get_cookies()}
+        with open(cookie_fname, 'w') as f:
+            f.write(json.dumps(cookies))
+        time.sleep(2)      
+        return 'login success'
+    
     def get_tb_token(self):
         tb_token = None
         for c in self.se.cookies.items():
@@ -274,7 +173,7 @@ class Alimama:
     def get_detail(self, q):
         try:
             t = int(time.time() * 1000)
-            tb_token = self.se.cookies.get('_tb_token_', domain="pub.alimama.com")
+            tb_token = self.get_tb_token()
             pvid = '10_%s_1686_%s' % (self.myip, t)
             url = 'http://pub.alimama.com/items/search.json?q=%s&_t=%s&auctionTag=&perPageSize=40&shopTag=&t=%s&_tb_token_=%s&pvid=%s' % (
                 urllib.quote(q.encode('utf8')), t, t, tb_token, pvid)
@@ -303,7 +202,7 @@ class Alimama:
     # 获取淘宝客链接
     def get_tk_link(self, auctionid):
         t = int(time.time() * 1000)
-        tb_token = self.se.cookies.get('_tb_token_', domain="pub.alimama.com")
+        tb_token = self.get_tb_token()
         pvid = '10_%s_1686_%s' % (self.myip, t)
         try:
             gcid, siteid, adzoneid = self.__get_tk_link_s1(auctionid, tb_token, pvid)
@@ -379,13 +278,17 @@ class Alimama:
         }
         res = self.get_url(url, headers)
         rj = json.loads(res.text)
+        try:
+            self.driver.quit()
+        except:
+            print('ok,go on')
         return rj['data']
 
     def get_real_url(self, url):
         # return "https://detail.tmall.com/item.htm?id=548726815314"
         try:
             headers = {
-                'Host': url.split('http://')[-1].split('/')[0],
+                'Host': url.split('https://')[-1].split('/')[0],
                 'Upgrade-Insecure-Requests': '1',
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -394,20 +297,19 @@ class Alimama:
             }
             res = self.get_url(url, headers)
             if re.search(r'itemId\":\d+', res.text):
-                item_id = re.search(r'itemId\":\d+', res.text).group().replace('itemId":', '').replace('https://',
-                                                                                                       'http://')
+                item_id = re.search(r'itemId\":\d+', res.text).group().replace('itemId":', '').replace('https://','http://')
                 r_url = "https://detail.tmall.com/item.htm?id=%s" % item_id
             elif re.search(r"var url = '.*';", res.text):
-                r_url = re.search(r"var url = '.*';", res.text).group().replace("var url = '", "").replace("';",
-                                                                                                           "").replace(
-                    'https://', 'http://')
+                r_url = re.search(r"var url = '.*';", res.text).group().replace("var url = '", "").replace("';","").replace('https://', 'http://')
             else:
                 r_url = res.url
             if 's.click.taobao.com' in r_url:
                 r_url = self.handle_click_type_url(r_url)
+            elif 'm.intl.taobao.com' in r_url:
+                item_id = re.search(r'item_id=\d+', text).group().replace('item_id=', '')
+                r_url = "https://item.taobao.com/item.htm?id=%s" % item_id
             else:
-                while ('detail.tmall.com' not in r_url) and ('item.taobao.com' not in r_url) and (
-                            'detail.m.tmall.com' not in r_url):
+                while ('detail.tmall.com' not in r_url) and ('item.taobao.com' not in r_url) and ('detail.m.tmall.com' not in r_url):
                     headers1 = {
                         'Host': r_url.split('http://')[-1].split('/')[0],
                         'Upgrade-Insecure-Requests': '1',
