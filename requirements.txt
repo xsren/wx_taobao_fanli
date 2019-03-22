@@ -1,4 +1,5 @@
 itchat
+selenium
 qrtools
 pillow
 zbarlight

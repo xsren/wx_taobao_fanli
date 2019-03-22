@@ -41,20 +41,20 @@ def check_if_is_tb_link(msg):
             q = re.search(r'【.*】', msg.text).group().replace(u'【', '').replace(u'】', '')
             if u'打开👉天猫APP👈' in msg.text:
                 try:
-                    url = re.search(r'http://.* \)', msg.text).group().replace(u' )', '')
+                    url = re.search(r'https://.* ',msg.text).group()
                 except:
                     url = None
                     taokouling = re.search(r'￥.*?￥', msg.text).group()
             elif u'👉淘♂寳♀👈' in msg.text:
                 try:
-                    url = re.search(r'http://.* \)', msg.text).group().replace(u' )', '')
+                    url = re.search(r'https://.* ',msg.text).group()
                 except:
                     url = None
-                    taokouling = re.search(r'€.*?€', msg.text).group()
+                    taokouling = re.search(r'€.*?€', msg.text)
 
             else:
                 try:
-                    url = re.search(r'http://.* ，', msg.text).group().replace(u' ，', '')
+                    url = re.search(r'https://.* ',msg.text).group()
                 except:
                     url = None
             # 20170909新版淘宝分享中没有链接， 感谢网友jindx0713（https://github.com/jindx0713）提供代码和思路，现在使用第三方网站 http://www.taokouling.com 根据淘口令获取url
